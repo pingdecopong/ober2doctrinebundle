@@ -255,6 +255,46 @@ class OberMngToYaml
                     $ret[$entityName][$entityNameFullPath]["manyToOne"][$parentEntityName.$relation->getChildColumn()->getPhysicalName()]["joinColumns"][$relation->getChildColumn()->getPhysicalName()]["referencedColumnName"] = $relation->getParentColumn()->getPhysicalName();
                 }
 
+                //fieldの場合は削除してnullableオプションを指定する
+                if(array_key_exists($relation->getChildColumn()->getPhysicalName(), $ret[$entityName][$entityNameFullPath]["fields"]))
+                {
+
+                    if($relation->getParentPropertyName() !== null && $relation->getParentPropertyName() !== null)
+                    {
+                        $ret[$entityName][$entityNameFullPath]["manyToOne"][$relation->getChildPropertyName()]["joinColumns"][$relation->getChildColumn()->getPhysicalName()]["nullable"] = $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]["nullable"];
+                    }else{
+                        $ret[$entityName][$entityNameFullPath]["manyToOne"][$parentEntityName.$relation->getChildColumn()->getPhysicalName()]["joinColumns"][$relation->getChildColumn()->getPhysicalName()]["referencedColumnName"] = $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]["nullable"];
+                    }
+
+//                    if(array_key_exists("nullable", $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]))
+//                    {
+//                        if($relation->getParentPropertyName() !== null && $relation->getParentPropertyName() !== null)
+//                        {
+//                            $ret[$entityName][$entityNameFullPath]["manyToOne"][$relation->getChildPropertyName()]["joinColumns"][$relation->getChildColumn()->getPhysicalName()]["nullable"] = $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]["nullable"];
+//                        }else{
+//                            $ret[$entityName][$entityNameFullPath]["manyToOne"][$parentEntityName.$relation->getChildColumn()->getPhysicalName()]["joinColumns"][$relation->getChildColumn()->getPhysicalName()]["referencedColumnName"] = $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]["nullable"];
+//                        }
+//                    }
+                    unset($ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]);
+                }
+
+                //idの場合は一度削除してassociationKey指定する
+                if(array_key_exists($relation->getChildColumn()->getPhysicalName(), $ret[$entityName][$entityNameFullPath]["id"]))
+                {
+                    unset($ret[$entityName][$entityNameFullPath]["id"][$relation->getChildColumn()->getPhysicalName()]);
+
+                    if($relation->getParentPropertyName() !== null && $relation->getParentPropertyName() !== null)
+                    {
+                        $ret[$entityName][$entityNameFullPath]["id"][$relation->getChildPropertyName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["id"][$relation->getChildPropertyName()]["associationKey"] = true;
+                    }else{
+                        $ret[$entityName][$entityNameFullPath]["id"][$parentEntityName.$relation->getChildColumn()->getPhysicalName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["id"][$parentEntityName.$relation->getChildColumn()->getPhysicalName()]["associationKey"] = true;
+                    }
+                }
+
+//                $ret[$entityName][$entityNameFullPath]["fields"][$relation->getChildColumn()->getPhysicalName()]["length"] = (int)$value->getLength();
+
 //                $ret[$entityName][$entityNameFullPath]["manyToOne"][strtolower($parentEntityName)] = array();
 //                $ret[$entityName][$entityNameFullPath]["manyToOne"][strtolower($parentEntityName)]["targetEntity"] = $parentEntityName;
 //                $ret[$entityName][$entityNameFullPath]["manyToOne"][strtolower($parentEntityName)]["inversedBy"] = strtolower($entityName . "s");
@@ -291,28 +331,110 @@ class OberMngToYaml
                 $relationChildEntity = $relation->getChildEntity();
                 $childEntityName = $relationChildEntity->getPhysicalName() . "s";
 
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)] = array();
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["targetEntity"] = $relationChildEntity->getPhysicalName();
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["inversedBy"] = strtolower($entityName . "s");
-
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"] = array();
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["name"] = strtolower($entityName . "s") ."_". strtolower($childEntityName);
-
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"] = array();
-                foreach($relationParentEntity->getPrimaryAttributes() as $pavalue)
+                if($relation->getParentPropertyName() !== null && $relation->getParentPropertyName() !== null)
                 {
-                    /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
-                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][$pavalue->getPhysicalName()] = array();
-                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["targetEntity"] = $relationChildEntity->getPhysicalName();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["inversedBy"] = $relation->getParentPropertyName();
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["name"] = strtolower($relation->getChildPropertyName()) . '_mid';
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"] = array();
+                    foreach($relationParentEntity->getPrimaryAttributes() as $pavalue)
+                    {
+                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+                        //strtolower($entityName . "s")
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+                    }
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"] = array();
+                    foreach($relationChildEntity->getPrimaryAttributes() as $pavalue)
+                    {
+                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+                    }
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()] = array();
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["targetEntity"] = $relationChildEntity->getPhysicalName();
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["inversedBy"] = strtolower($entityName . "s");
+//
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"] = array();
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["name"] = strtolower($relation->getChildPropertyName()) . '_mid';
+//
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"] = array();
+//                    foreach($relationParentEntity->getPrimaryAttributes() as $pavalue)
+//                    {
+//                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+//                        //strtolower($entityName . "s")
+//                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()] = array();
+//                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+//                    }
+//
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"] = array();
+//                    foreach($relationChildEntity->getPrimaryAttributes() as $pavalue)
+//                    {
+//                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+//                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()] = array();
+//                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getChildPropertyName()]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+//                    }
+//
+                }else{
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["targetEntity"] = $relationChildEntity->getPhysicalName();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["inversedBy"] = $entityName . "s";
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["name"] = strtolower($entityName . "s") ."_". strtolower($childEntityName) . '_mid';
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["joinColumns"] = array();
+                    foreach($relationParentEntity->getPrimaryAttributes() as $pavalue)
+                    {
+                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+                        //strtolower($entityName . "s")
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+                    }
+
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["inverseJoinColumns"] = array();
+                    foreach($relationChildEntity->getPrimaryAttributes() as $pavalue)
+                    {
+                        /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()] = array();
+                        $ret[$entityName][$entityNameFullPath]["manyToMany"][$childEntityName]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+                    }
                 }
 
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"] = array();
-                foreach($relationChildEntity->getPrimaryAttributes() as $pavalue)
-                {
-                    /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
-                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][$pavalue->getPhysicalName()] = array();
-                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
-                }
+
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)] = array();
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["targetEntity"] = $relationChildEntity->getPhysicalName();
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["inversedBy"] = strtolower($entityName . "s");
+//
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"] = array();
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["name"] = strtolower($entityName . "s") ."_". strtolower($childEntityName) . '_mid';
+//
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"] = array();
+//                foreach($relationParentEntity->getPrimaryAttributes() as $pavalue)
+//                {
+//                    /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+//                    //strtolower($entityName . "s")
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()] = array();
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][strtolower($entityName).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+////                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][$pavalue->getPhysicalName()] = array();
+////                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["joinColumns"][$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+//
+//                }
+//
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"] = array();
+//                foreach($relationChildEntity->getPrimaryAttributes() as $pavalue)
+//                {
+//                    /* @var $pavalue \Arte\Ober2doctrineBundle\Entity\OberAttribute */
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()] = array();
+//                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][strtolower($relationChildEntity->getPhysicalName()).'_'.$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+////                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][$pavalue->getPhysicalName()] = array();
+////                    $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($childEntityName)]["joinTable"]["inverseJoinColumns"][$pavalue->getPhysicalName()]["referencedColumnName"] = $pavalue->getPhysicalName();
+//                }
             }
 
             //relation ManyToMany child
@@ -337,9 +459,23 @@ class OberMngToYaml
                 $relationParentEntity = $relation->getParentEntity();
                 $parentEntityName = $relationParentEntity->getPhysicalName();
 
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")] = array();
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")]["targetEntity"] = $parentEntityName;
-                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")]["mappedBy"] = strtolower($entityName . "s");
+                if($relation->getParentPropertyName() !== null && $relation->getParentPropertyName() !== null)
+                {
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getParentPropertyName()] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getParentPropertyName()]["targetEntity"] = $parentEntityName;
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$relation->getParentPropertyName()]["mappedBy"] = $relation->getChildPropertyName();
+                }else{
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"] = array();
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"]["targetEntity"] = $parentEntityName;
+                    $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"]["mappedBy"] = $entityName . "s";
+                }
+
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"] = array();
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"]["targetEntity"] = $parentEntityName;
+//                $ret[$entityName][$entityNameFullPath]["manyToMany"][$parentEntityName . "s"]["mappedBy"] = $entityName . "s";
+////                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")] = array();
+////                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")]["targetEntity"] = $parentEntityName;
+////                $ret[$entityName][$entityNameFullPath]["manyToMany"][strtolower($parentEntityName . "s")]["mappedBy"] = strtolower($entityName . "s");
             }
 
             //commnet json
