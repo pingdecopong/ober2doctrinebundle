@@ -1,0 +1,21 @@
+{
+    "name": "pingdecopong/ober2doctrinebundle",
+    "type": "symfony-bundle",
+    "description": "ober file convert bundle.",
+    "keywords": ["ober"],
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "pingdecopong",
+            "homepage": "https://github.com/pingdecopong"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.2"
+    },
+    "autoload": {
+        "psr-0": { "Arte\\Ober2doctrineBundle": "" }
+    },
+    "target-dir": "Arte/Ober2doctrineBundle"
+}
